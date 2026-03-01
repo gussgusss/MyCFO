@@ -42,7 +42,7 @@ def build_alert_suggestions(*, workspace_name: str, metrics: dict, alerts: list[
         },
     }
     req = request.Request(
-        url=f"https://router.huggingface.co/models/{model}",
+        url=f"https://api-inference.huggingface.co/models/{model}",
         data=json.dumps(body).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {api_key}",
