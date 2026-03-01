@@ -34,9 +34,8 @@ def compute_metrics(*, workspace: Workspace, transactions: list[Transaction], as
     recurring_revenue = sum(
         txn.amount_cents
         for txn in window_transactions
-        if txn.type == "revenue" and txn.subtype in {"subscription_invoice", "recurring_revenue"}
+        if txn.type == "revenue" and txn.subtype in {"subscription_invoice", "recurring_revenue", "recurring"}
     )
-    arpa = int(recurring_revenue / max(_distinct_customers(window_transactions), 1))
     cash_on_hand = workspace.cash_on_hand_cents
     runway_months = round(cash_on_hand / recurring_burn, 2) if cash_on_hand is not None and recurring_burn > 0 else None
 
@@ -45,28 +44,20 @@ def compute_metrics(*, workspace: Workspace, transactions: list[Transaction], as
         warnings.append(
             {"code": "missing_cash", "message": "cash_on_hand_cents not configured on workspace; runway is null."}
         )
-    if not any(txn.subtype == "subscription_event" for txn in transactions):
-        warnings.append(
-            {
-                "code": "churn_unavailable",
-                "message": "No subscription lifecycle data ingested; churn metrics are approximated as null.",
-            }
-        )
 
     previous_mrr = sum(
         txn.amount_cents
         for txn in previous_transactions
-        if txn.type == "revenue" and txn.subtype in {"subscription_invoice", "recurring_revenue"}
+        if txn.type == "revenue" and txn.subtype in {"subscription_invoice", "recurring_revenue", "recurring"}
     )
-    current_mrr = recurring_revenue
     refunds_prev = sum(txn.amount_cents for txn in previous_transactions if txn.subtype == "refund")
 
     return {
         "as_of": as_of.isoformat(),
         "currency": _currency_for_transactions(transactions),
-        "mrr_cents": current_mrr,
-        "arr_cents": current_mrr * 12,
         "gross_revenue_cents_30d": gross_revenue,
+        "mrr_cents": recurring_revenue,
+        "arr_cents": recurring_revenue * 12,
         "refunds_cents_30d": refunds,
         "net_revenue_cents_30d": net_revenue,
         "burn_cents_30d": burn,
@@ -74,24 +65,12 @@ def compute_metrics(*, workspace: Workspace, transactions: list[Transaction], as
         "one_time_expenses_cents_30d": one_time_expenses,
         "cash_on_hand_cents": cash_on_hand,
         "runway_months": runway_months,
-        "logo_churn_pct_month": None,
-        "revenue_churn_pct_month": None,
-        "arpa_cents": arpa,
         "warnings": warnings,
         "_comparisons": {
             "previous_mrr_cents_30d": previous_mrr,
             "previous_refunds_cents_30d": refunds_prev,
         },
     }
-
-
-def _distinct_customers(transactions: list[Transaction]) -> int:
-    customers = {
-        txn.customer_ref
-        for txn in transactions
-        if txn.customer_ref and txn.type == "revenue" and txn.subtype in {"subscription_invoice", "recurring_revenue"}
-    }
-    return len(customers)
 
 
 def _currency_for_transactions(transactions: list[Transaction]) -> str:
