@@ -50,6 +50,7 @@ def build_alert_suggestions(*, workspace_name: str, metrics: dict, alerts: list[
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            "User-Agent": "mycfo-api/1.0",
         },
         method="POST",
     )
