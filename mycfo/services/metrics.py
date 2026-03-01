@@ -19,8 +19,17 @@ def compute_metrics(*, workspace: Workspace, transactions: list[Transaction], as
     )
     refunds = sum(txn.amount_cents for txn in window_transactions if txn.subtype == "refund")
     net_revenue = gross_revenue + refunds
-    expenses = sum(txn.amount_cents for txn in window_transactions if txn.type == "expense")
-    burn = expenses - net_revenue
+    recurring_expenses = sum(
+        txn.amount_cents for txn in window_transactions
+        if txn.type == "expense" and txn.subtype == "recurring_expense"
+    )
+    one_time_expenses = sum(
+        txn.amount_cents for txn in window_transactions
+        if txn.type == "expense" and txn.subtype == "one_time_expense"
+    )
+    total_expenses = recurring_expenses + one_time_expenses
+    burn = total_expenses - net_revenue
+    recurring_burn = recurring_expenses - net_revenue
 
     recurring_revenue = sum(
         txn.amount_cents
@@ -29,7 +38,7 @@ def compute_metrics(*, workspace: Workspace, transactions: list[Transaction], as
     )
     arpa = int(recurring_revenue / max(_distinct_customers(window_transactions), 1))
     cash_on_hand = workspace.cash_on_hand_cents
-    runway_months = round(cash_on_hand / burn, 2) if cash_on_hand is not None and burn > 0 else None
+    runway_months = round(cash_on_hand / recurring_burn, 2) if cash_on_hand is not None and recurring_burn > 0 else None
 
     warnings = []
     if cash_on_hand is None:
@@ -61,6 +70,8 @@ def compute_metrics(*, workspace: Workspace, transactions: list[Transaction], as
         "refunds_cents_30d": refunds,
         "net_revenue_cents_30d": net_revenue,
         "burn_cents_30d": burn,
+        "recurring_burn_cents_30d": recurring_burn,
+        "one_time_expenses_cents_30d": one_time_expenses,
         "cash_on_hand_cents": cash_on_hand,
         "runway_months": runway_months,
         "logo_churn_pct_month": None,
