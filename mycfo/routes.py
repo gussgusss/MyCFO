@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 
+from .views.ai import ai_bp
 from .views.alerts import alerts_bp
 from .views.auth import auth_bp
 from .views.forecasts import forecasts_bp
@@ -21,3 +22,4 @@ def register_routes(app: Flask) -> None:
     app.register_blueprint(forecasts_bp, url_prefix="/v1")
     app.register_blueprint(scenarios_bp, url_prefix="/v1")
     app.register_blueprint(alerts_bp, url_prefix="/v1")
+    app.register_blueprint(ai_bp, url_prefix="/v1")

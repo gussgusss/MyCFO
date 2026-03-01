@@ -10,7 +10,7 @@ API-first CFO copilot for a hackathon MVP: org-scoped auth, workspaces, determin
 - Stripe `export` ingest only for MVP
 - Expense ingest
 - Metrics, forecasts, scenarios, and alerts
-- AI layer deferred until the deterministic engine is stable
+- AI suggestions grounded in computed alerts via Hugging Face inference
 
 ## Quickstart
 
@@ -46,9 +46,16 @@ flask run
 - `DATABASE_URL`
 - `JWT_SECRET`
 - `JWT_ACCESS_TTL_SECONDS`
+- `HUGGINGFACE_API_KEY` for AI suggestions
+
+## Optional AI configuration
+
+- `HUGGINGFACE_MODEL`
+- `HUGGINGFACE_TIMEOUT_SECONDS`
 
 ## Notes
 
 - `DATABASE_URL` defaults to `sqlite:///mycfo.db` for local scaffolding only.
 - Production should use Neon Postgres.
 - Live Stripe API pull is intentionally not implemented in-app for MVP. Document it as a future extension after the export-based demo flow is solid.
+- AI suggestions are advisory only and are grounded on alert and metric outputs already computed by the API.
