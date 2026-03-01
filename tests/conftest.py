@@ -2,12 +2,22 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+import types
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+if "requests" not in sys.modules:
+    fake_requests = types.ModuleType("requests")
+
+    def _unpatched_get(*args, **kwargs):
+        raise RuntimeError("requests.get must be monkeypatched in tests")
+
+    fake_requests.get = _unpatched_get
+    sys.modules["requests"] = fake_requests
 
 from mycfo import create_app
 from mycfo.bootstrap import create_schema

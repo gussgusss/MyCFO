@@ -1,6 +1,102 @@
 from __future__ import annotations
 
 
+class _FakeStripeResponse:
+    def __init__(self, *, status_code: int, payload: dict):
+        self.status_code = status_code
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+
+def _mock_stripe_get_factory():
+    payloads = {
+        "invoices": {
+            "data": [
+                {
+                    "id": "in_001",
+                    "amount_paid": 250_000,
+                    "currency": "usd",
+                    "created": 1770000000,
+                    "customer": "cus_001",
+                    "subscription": "sub_001",
+                    "status_transitions": {"paid_at": 1770000000},
+                },
+                {
+                    "id": "in_002",
+                    "amount_paid": 180_000,
+                    "currency": "usd",
+                    "created": 1770500000,
+                    "customer": "cus_002",
+                    "subscription": None,
+                    "status_transitions": {"paid_at": 1770500000},
+                },
+            ],
+            "has_more": False,
+        },
+        "charges": {
+            "data": [
+                {
+                    "id": "ch_001",
+                    "paid": True,
+                    "captured": True,
+                    "invoice": "in_002",
+                    "amount_captured": 180_000,
+                    "currency": "usd",
+                    "created": 1770500000,
+                    "customer": "cus_002",
+                },
+                {
+                    "id": "ch_002",
+                    "paid": True,
+                    "captured": True,
+                    "invoice": None,
+                    "amount_captured": 60_000,
+                    "currency": "usd",
+                    "created": 1770550000,
+                    "customer": "cus_003",
+                },
+            ],
+            "has_more": False,
+        },
+        "refunds": {
+            "data": [
+                {
+                    "id": "re_001",
+                    "status": "succeeded",
+                    "amount": 20_000,
+                    "currency": "usd",
+                    "created": 1770600000,
+                }
+            ],
+            "has_more": False,
+        },
+        "subscriptions": {
+            "data": [
+                {
+                    "id": "sub_001",
+                    "currency": "usd",
+                    "created": 1770000000,
+                    "customer": "cus_001",
+                    "status": "active",
+                }
+            ],
+            "has_more": False,
+        },
+    }
+
+    def fake_get(url, headers, params, timeout):
+        resource = url.rsplit("/", 1)[-1]
+        return _FakeStripeResponse(status_code=200, payload=payloads[resource])
+
+    return fake_get
+
+
 def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_headers, workspace_id, monkeypatch):
     expenses_response = client.post(
         f"/v1/workspaces/{workspace_id}/ingest/expenses",
@@ -27,54 +123,38 @@ def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_
     assert expenses_response.status_code == 202
     assert expenses_response.get_json()["inserted"] == 2
 
+    revenue_response = client.post(
+        f"/v1/workspaces/{workspace_id}/ingest/revenue",
+        json={
+            "revenue": [
+                {
+                    "subtype": "recurring",
+                    "amount_cents": 90_000,
+                    "currency": "USD",
+                    "occurred_at": "2026-02-05",
+                    "description": "Founding Plan",
+                    "external_id": "rev_001",
+                },
+                {
+                    "subtype": "one_time",
+                    "amount_cents": 40_000,
+                    "currency": "USD",
+                    "occurred_at": "2026-02-12",
+                    "description": "Setup Fee",
+                    "external_id": "rev_002",
+                },
+            ]
+        },
+        headers={**auth_headers, "Idempotency-Key": "revenue-1"},
+    )
+    assert revenue_response.status_code == 202
+    assert revenue_response.get_json()["inserted"] == 2
+
+    monkeypatch.setattr("mycfo.views.ingest.requests.get", _mock_stripe_get_factory())
     stripe_response = client.post(
         f"/v1/workspaces/{workspace_id}/ingest/stripe",
         json={
-            "mode": "export",
-            "payload": {
-                "invoices": [
-                    {
-                        "id": "in_001",
-                        "amount_paid": 250_000,
-                        "currency": "usd",
-                        "created": 1770000000,
-                        "customer": "cus_001",
-                        "subscription": "sub_001",
-                    },
-                    {
-                        "id": "in_002",
-                        "amount_paid": 180_000,
-                        "currency": "usd",
-                        "created": 1770500000,
-                        "customer": "cus_002",
-                        "subscription": "sub_002",
-                    },
-                ],
-                "subscriptions": [
-                    {
-                        "id": "sub_001",
-                        "currency": "usd",
-                        "created": 1770000000,
-                        "customer": "cus_001",
-                    },
-                    {
-                        "id": "sub_002",
-                        "currency": "usd",
-                        "created": 1770500000,
-                        "customer": "cus_002",
-                    },
-                ],
-                "charges": [],
-                "refunds": [
-                    {
-                        "id": "re_001",
-                        "amount": 20_000,
-                        "currency": "usd",
-                        "created": 1770600000,
-                        "customer": "cus_002",
-                    }
-                ],
-            },
+            "stripe_api_key": "sk_test_123",
         },
         headers={**auth_headers, "Idempotency-Key": "stripe-1"},
     )
@@ -87,15 +167,16 @@ def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_
     )
     metrics = metrics_response.get_json()
     assert metrics_response.status_code == 200
-    assert metrics["mrr_cents"] == 430_000
-    assert metrics["arr_cents"] == 5_160_000
-    assert metrics["gross_revenue_cents_30d"] == 430_000
+    assert metrics["mrr_cents"] == 340_000
+    assert metrics["arr_cents"] == 4_080_000
+    assert metrics["gross_revenue_cents_30d"] == 620_000
     assert metrics["refunds_cents_30d"] == -20_000
-    assert metrics["net_revenue_cents_30d"] == 410_000
-    assert metrics["burn_cents_30d"] == 210_000
+    assert metrics["net_revenue_cents_30d"] == 600_000
+    assert metrics["burn_cents_30d"] == 20_000
+    assert metrics["recurring_burn_cents_30d"] == -480_000
+    assert metrics["one_time_expenses_cents_30d"] == 500_000
     assert metrics["cash_on_hand_cents"] == 5_000_000
-    assert metrics["runway_months"] == None
-    assert metrics["arpa_cents"] == 215_000
+    assert metrics["runway_months"] is None
     assert metrics["warnings"] == []
 
     forecast_response = client.post(
@@ -120,7 +201,7 @@ def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_
     forecast = forecast_response.get_json()
     assert forecast_response.status_code == 201
     assert len(forecast["series"]["months"]) == 6
-    assert forecast["series"]["base"]["mrr_cents"][0] > 430_000
+    assert forecast["series"]["base"]["mrr_cents"][0] == 350_200
 
     get_forecast_response = client.get(
         f"/v1/workspaces/{workspace_id}/forecasts/{forecast['id']}",
@@ -168,6 +249,43 @@ def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_
 
     delete_response = client.delete(f"/v1/workspaces/{workspace_id}", headers=auth_headers)
     assert delete_response.status_code == 204
+
+
+def test_ingest_stripe_rejects_invalid_api_key(client, auth_headers, workspace_id, monkeypatch):
+    def fake_get(url, headers, params, timeout):
+        return _FakeStripeResponse(status_code=401, payload={"error": {"message": "Invalid API Key"}})
+
+    monkeypatch.setattr("mycfo.views.ingest.requests.get", fake_get)
+
+    response = client.post(
+        f"/v1/workspaces/{workspace_id}/ingest/stripe",
+        json={"stripe_api_key": "bad-key"},
+        headers={**auth_headers, "Idempotency-Key": "stripe-invalid"},
+    )
+
+    assert response.status_code == 422
+    assert response.get_json()["error"]["code"] == "invalid_stripe_api_key"
+
+
+def test_ingest_revenue_rejects_invalid_subtype(client, auth_headers, workspace_id):
+    response = client.post(
+        f"/v1/workspaces/{workspace_id}/ingest/revenue",
+        json={
+            "revenue": [
+                {
+                    "subtype": "subscription",
+                    "amount_cents": 100_000,
+                    "currency": "USD",
+                    "occurred_at": "2026-02-05",
+                    "description": "Bad Revenue",
+                }
+            ]
+        },
+        headers={**auth_headers, "Idempotency-Key": "revenue-invalid"},
+    )
+
+    assert response.status_code == 422
+    assert response.get_json()["error"]["code"] == "invalid_subtype"
 
 
 def test_alerts_generate_runway_low_warning(client, auth_headers, workspace_id):
