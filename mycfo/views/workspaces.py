@@ -1,10 +1,10 @@
 from flask import Blueprint, g, jsonify, request
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from ..auth import require_auth
 from ..db import get_db
 from ..idempotency import check_idempotency, store_idempotency_response
-from ..models import Workspace
+from ..models import Alert, Forecast, Scenario, Transaction, Workspace
 from ..serializers import workspace_to_dict
 from ..utils import new_id, read_pagination, require_field, require_json
 from .common import get_workspace_or_404
@@ -55,3 +55,39 @@ def list_workspaces():
 def get_workspace(workspace_id: str):
     workspace = get_workspace_or_404(workspace_id)
     return jsonify(workspace_to_dict(workspace))
+
+
+@workspaces_bp.delete("/workspaces/<workspace_id>")
+@require_auth()
+def delete_workspace(workspace_id: str):
+    workspace = get_workspace_or_404(workspace_id)
+    session = get_db()
+
+    session.execute(
+        delete(Scenario).where(
+            Scenario.workspace_id == workspace.id,
+            Scenario.org_id == g.current_org_id,
+        )
+    )
+    session.execute(
+        delete(Alert).where(
+            Alert.workspace_id == workspace.id,
+            Alert.org_id == g.current_org_id,
+        )
+    )
+    session.execute(
+        delete(Forecast).where(
+            Forecast.workspace_id == workspace.id,
+            Forecast.org_id == g.current_org_id,
+        )
+    )
+    session.execute(
+        delete(Transaction).where(
+            Transaction.workspace_id == workspace.id,
+            Transaction.org_id == g.current_org_id,
+        )
+    )
+    session.delete(workspace)
+    session.commit()
+
+    return "", 204

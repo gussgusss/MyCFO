@@ -41,6 +41,20 @@ flask init-db
 flask run
 ```
 
+## Useful development commands
+
+Initialize the schema:
+
+```bash
+python -m flask init-db
+```
+
+Reset all tables in development only:
+
+```bash
+python -m flask reset-db --yes
+```
+
 ## Required environment variables
 
 - `DATABASE_URL`
