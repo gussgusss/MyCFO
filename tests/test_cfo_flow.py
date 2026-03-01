@@ -182,13 +182,13 @@ def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_
     forecast_response = client.post(
         f"/v1/workspaces/{workspace_id}/forecasts",
         json={
+            "name": "Base Plan",
             "as_of": "2026-02-28",
             "horizon_months": 6,
             "assumptions": {
                 "mrr_growth_pct": 6,
                 "monthly_logo_churn_pct": 3,
                 "gross_margin_pct": 85,
-                "starting_cash_cents": 5_000_000,
             },
             "variants": {
                 "base": {},
@@ -200,8 +200,20 @@ def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_
     )
     forecast = forecast_response.get_json()
     assert forecast_response.status_code == 201
+    assert forecast["name"] == "Base Plan"
+    assert forecast["assumptions"]["starting_cash_cents"] == 5_000_000
     assert len(forecast["series"]["months"]) == 6
     assert forecast["series"]["base"]["mrr_cents"][0] == 350_200
+
+    list_forecasts_response = client.get(
+        f"/v1/workspaces/{workspace_id}/forecasts",
+        headers=auth_headers,
+    )
+    assert list_forecasts_response.status_code == 200
+    forecast_summary = list_forecasts_response.get_json()["data"][0]
+    assert forecast_summary["id"] == forecast["id"]
+    assert forecast_summary["name"] == "Base Plan"
+    assert "series" not in forecast_summary
 
     get_forecast_response = client.get(
         f"/v1/workspaces/{workspace_id}/forecasts/{forecast['id']}",
@@ -213,6 +225,7 @@ def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_
     scenario_response = client.post(
         f"/v1/workspaces/{workspace_id}/scenarios",
         json={
+            "name": "Price Increase Scenario",
             "baseline_forecast_id": forecast["id"],
             "delta": {"type": "price_change", "pct": 0.10},
         },
@@ -220,7 +233,25 @@ def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_
     )
     scenario = scenario_response.get_json()
     assert scenario_response.status_code == 201
+    assert scenario["name"] == "Price Increase Scenario"
     assert scenario["impact"]["final_mrr_cents"] > forecast["series"]["base"]["mrr_cents"][-1]
+
+    list_scenarios_response = client.get(
+        f"/v1/workspaces/{workspace_id}/scenarios",
+        headers=auth_headers,
+    )
+    assert list_scenarios_response.status_code == 200
+    scenario_summary = list_scenarios_response.get_json()["data"][0]
+    assert scenario_summary["id"] == scenario["id"]
+    assert scenario_summary["name"] == "Price Increase Scenario"
+    assert "series" not in scenario_summary
+
+    get_scenario_response = client.get(
+        f"/v1/workspaces/{workspace_id}/scenarios/{scenario['id']}",
+        headers=auth_headers,
+    )
+    assert get_scenario_response.status_code == 200
+    assert get_scenario_response.get_json()["id"] == scenario["id"]
 
     alerts_response = client.get(
         f"/v1/workspaces/{workspace_id}/alerts?as_of=2026-02-28",

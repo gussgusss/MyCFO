@@ -7,7 +7,9 @@ API-first CFO copilot for a hackathon MVP: org-scoped auth, workspaces, determin
 - Flask API deployed through Vercel
 - Neon Postgres in production
 - JWT auth with organization scoping
-- Stripe `export` ingest only for MVP
+- Manual expense ingest
+- Manual revenue ingest
+- Live Stripe API ingest using a Stripe secret key
 - Expense ingest
 - Metrics, forecasts, scenarios, and alerts
 - AI suggestions grounded in computed alerts via Hugging Face inference
@@ -71,5 +73,18 @@ python -m flask reset-db --yes
 
 - `DATABASE_URL` defaults to `sqlite:///mycfo.db` for local scaffolding only.
 - Production should use Neon Postgres.
-- Live Stripe API pull is intentionally not implemented in-app for MVP. Document it as a future extension after the export-based demo flow is solid.
+- Stripe API pull is implemented in-app through `POST /v1/workspaces/<workspace_id>/ingest/stripe` and expects `stripe_api_key` in the request body.
 - AI suggestions are advisory only and are grounded on alert and metric outputs already computed by the API.
+
+## Metric Definitions
+
+- `burn_cents_30d`: total 30-day expenses minus net revenue
+- `recurring_burn_cents_30d`: recurring 30-day expenses minus net revenue
+- `runway_months`: `cash_on_hand_cents / recurring_burn_cents_30d` when recurring burn is positive; otherwise `null`
+- `mrr_cents`: recurring revenue only, including manual `recurring` revenue and recurring Stripe invoice revenue
+
+## Ingest Modes
+
+- `POST /v1/workspaces/<workspace_id>/ingest/expenses`: manual expense events
+- `POST /v1/workspaces/<workspace_id>/ingest/revenue`: manual revenue events with subtype `recurring` or `one_time`
+- `POST /v1/workspaces/<workspace_id>/ingest/stripe`: live Stripe pull using the provided `stripe_api_key`
