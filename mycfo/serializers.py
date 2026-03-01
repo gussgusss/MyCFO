@@ -17,6 +17,7 @@ def forecast_to_dict(forecast: Forecast) -> dict:
     return {
         "id": forecast.id,
         "workspace_id": forecast.workspace_id,
+        "name": forecast.name,
         "as_of": forecast.as_of.isoformat(),
         "horizon_months": forecast.horizon_months,
         "assumptions": forecast.assumptions,

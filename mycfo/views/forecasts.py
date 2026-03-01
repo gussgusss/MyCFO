@@ -49,6 +49,7 @@ def create_forecast(workspace_id: str):
         id=new_id("fc"),
         org_id=g.current_org_id,
         workspace_id=workspace.id,
+        name=payload.get("name"),
         as_of=as_of,
         horizon_months=horizon_months,
         assumptions=assumptions,
@@ -73,7 +74,7 @@ def list_forecasts(workspace_id: str):
             select(Forecast).where(Forecast.workspace_id == workspace_id, Forecast.org_id == g.current_org_id).order_by(Forecast.created_at.desc())
         )
     )
-    return jsonify({"data": [forecast_to_dict(item) for item in forecasts[:limit]], "has_more": len(forecasts) > limit})
+    return jsonify({"data": [_forecast_summary(item) for item in forecasts[:limit]], "has_more": len(forecasts) > limit})
 
 
 @forecasts_bp.get("/workspaces/<workspace_id>/forecasts/<forecast_id>")
@@ -81,3 +82,13 @@ def list_forecasts(workspace_id: str):
 def get_forecast(workspace_id: str, forecast_id: str):
     forecast = get_forecast_or_404(workspace_id=workspace_id, forecast_id=forecast_id)
     return jsonify(forecast_to_dict(forecast))
+
+
+def _forecast_summary(forecast: Forecast) -> dict:
+    return {
+        "id": forecast.id,
+        "name": forecast.name,
+        "as_of": forecast.as_of.isoformat(),
+        "horizon_months": forecast.horizon_months,
+        "created_at": forecast.created_at.isoformat(),
+    }

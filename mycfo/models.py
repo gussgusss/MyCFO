@@ -67,6 +67,7 @@ class Forecast(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), nullable=False, index=True)
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False, index=True)
+    name: Mapped[str | None] = mapped_column(Text, nullable=True)
     as_of: Mapped[date] = mapped_column(Date, nullable=False)
     horizon_months: Mapped[int] = mapped_column(Integer, nullable=False)
     assumptions: Mapped[dict] = mapped_column(JSON, nullable=False)
