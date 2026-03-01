@@ -351,3 +351,75 @@ def test_alerts_generate_runway_low_warning(client, auth_headers, workspace_id):
     assert alerts_response.status_code == 200
     assert alerts[0]["type"] == "runway_low"
     assert alerts[0]["severity"] == "critical"
+
+
+def test_alerts_fire_revenue_decline_without_mrr_decline_for_non_recurring_business(client, auth_headers, workspace_id):
+    client.post(
+        f"/v1/workspaces/{workspace_id}/ingest/revenue",
+        json={
+            "revenue": [
+                {
+                    "subtype": "one_time",
+                    "amount_cents": 1_000_000,
+                    "currency": "USD",
+                    "occurred_at": "2026-01-20",
+                    "description": "Large January Project",
+                },
+                {
+                    "subtype": "one_time",
+                    "amount_cents": 100_000,
+                    "currency": "USD",
+                    "occurred_at": "2026-02-20",
+                    "description": "Small February Project",
+                },
+            ]
+        },
+        headers={**auth_headers, "Idempotency-Key": "revenue-decline"},
+    )
+
+    alerts_response = client.get(
+        f"/v1/workspaces/{workspace_id}/alerts?as_of=2026-02-28",
+        headers=auth_headers,
+    )
+    alerts = alerts_response.get_json()["data"]
+    alert_types = {item["type"] for item in alerts}
+
+    assert alerts_response.status_code == 200
+    assert "revenue_decline" in alert_types
+    assert "mrr_decline" not in alert_types
+
+
+def test_alerts_fire_mrr_decline_for_recurring_business(client, auth_headers, workspace_id):
+    client.post(
+        f"/v1/workspaces/{workspace_id}/ingest/revenue",
+        json={
+            "revenue": [
+                {
+                    "subtype": "recurring",
+                    "amount_cents": 300_000,
+                    "currency": "USD",
+                    "occurred_at": "2026-01-25",
+                    "description": "January MRR",
+                },
+                {
+                    "subtype": "recurring",
+                    "amount_cents": 200_000,
+                    "currency": "USD",
+                    "occurred_at": "2026-02-25",
+                    "description": "February MRR",
+                },
+            ]
+        },
+        headers={**auth_headers, "Idempotency-Key": "mrr-decline"},
+    )
+
+    alerts_response = client.get(
+        f"/v1/workspaces/{workspace_id}/alerts?as_of=2026-02-28",
+        headers=auth_headers,
+    )
+    alerts = alerts_response.get_json()["data"]
+    alert_types = {item["type"] for item in alerts}
+
+    assert alerts_response.status_code == 200
+    assert "mrr_decline" in alert_types
+    assert "revenue_decline" in alert_types
