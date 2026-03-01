@@ -94,7 +94,7 @@ def test_happy_path_metrics_forecast_scenario_alerts_ai_and_delete(client, auth_
     assert metrics["net_revenue_cents_30d"] == 410_000
     assert metrics["burn_cents_30d"] == 210_000
     assert metrics["cash_on_hand_cents"] == 5_000_000
-    assert metrics["runway_months"] == 23.81
+    assert metrics["runway_months"] == None
     assert metrics["arpa_cents"] == 215_000
     assert metrics["warnings"] == []
 
