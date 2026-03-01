@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Flask, g
+from flask import Flask, current_app, g
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -33,7 +33,8 @@ def init_db(app: Flask) -> None:
 
 def get_db() -> Session:
     if "db_session" not in g:
-        factory = g.app.extensions["db_session_factory"]
+        app = getattr(g, "app", None) or current_app
+        factory = app.extensions["db_session_factory"]
         g.db_session = factory()
     return g.db_session
 
