@@ -5,7 +5,6 @@ from sqlalchemy import select
 
 from ..auth import require_auth
 from ..db import get_db
-from ..errors import APIError
 from ..idempotency import check_idempotency, store_idempotency_response
 from ..models import Forecast, Transaction
 from ..serializers import forecast_to_dict
@@ -29,14 +28,7 @@ def create_forecast(workspace_id: str):
     as_of = parse_date(payload.get("as_of"), field_name="as_of")
     horizon_months = int(require_field(payload, "horizon_months"))
     assumptions = payload.get("assumptions", {})
-    if assumptions.get("starting_cash_cents") is None:
-        raise APIError(
-            status_code=422,
-            error_type="invalid_request",
-            code="missing_field",
-            message="starting_cash_cents is required for forecasts.",
-            param="assumptions.starting_cash_cents",
-        )
+    assumptions["starting_cash_cents"] = workspace.cash_on_hand_cents
 
     session = get_db()
     transactions = list(
