@@ -3,11 +3,17 @@
 :root {
   --bg: #0f1117;
   --surface: #1a1d27;
+  --surface2: #21253a;
   --border: #2a2d3a;
   --accent: #6c8efb;
   --text: #e2e4ed;
   --muted: #8b8fa8;
-  --sidebar-w: 240px;
+  --sidebar-w: 248px;
+  --get: #34c38f;
+  --post: #6c8efb;
+  --patch: #f0a841;
+  --delete: #f16767;
+  --code-bg: #12141e;
 }
 
 html { scroll-behavior: smooth; }
@@ -25,7 +31,7 @@ body {
   min-height: 100vh;
 }
 
-/* Sidebar */
+/* ─── Sidebar ─────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-w);
   flex-shrink: 0;
@@ -35,13 +41,16 @@ body {
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  padding: 28px 0 40px;
+  padding: 28px 0 48px;
 }
 
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
 .sidebar-logo {
-  padding: 0 20px 24px;
+  padding: 0 20px 20px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .sidebar-logo .name {
@@ -53,25 +62,253 @@ body {
 .sidebar-logo .tag {
   font-size: 11px;
   color: var(--muted);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
-/* Main */
+.nav-group {
+  margin-bottom: 4px;
+}
+
+.nav-group-label {
+  padding: 6px 20px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.nav-link:hover {
+  color: var(--text);
+  background: rgba(108,142,251,0.06);
+}
+
+.nav-link.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+.nav-link .badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.badge-get    { background: rgba(52,195,143,.15); color: var(--get); }
+.badge-post   { background: rgba(108,142,251,.15); color: var(--post); }
+.badge-patch  { background: rgba(240,168,65,.15); color: var(--patch); }
+.badge-delete { background: rgba(241,103,103,.15); color: var(--delete); }
+
+/* ─── Main ─────────────────────────────────────────────── */
 .main {
   flex: 1;
   min-width: 0;
-  padding: 48px clamp(24px, 5vw, 72px) 96px;
-  max-width: 860px;
+  padding: 48px clamp(24px, 5vw, 72px) 120px;
+  max-width: 900px;
+}
+
+/* ─── Page header ──────────────────────────────────────── */
+.page-header {
+  margin-bottom: 52px;
 }
 
 h1 {
-  font-size: 32px;
+  font-size: 34px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.6px;
   margin-bottom: 10px;
 }
 
 .subtitle {
   font-size: 16px;
   color: var(--muted);
+  line-height: 1.5;
+  max-width: 560px;
+}
+
+/* ─── Section headings ─────────────────────────────────── */
+.section {
+  margin-bottom: 60px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-desc {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 10px 0 20px;
+}
+
+/* ─── Endpoint cards ───────────────────────────────────── */
+.endpoint {
+  margin-bottom: 36px;
+  scroll-margin-top: 24px;
+}
+
+.endpoint-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.method {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.method-get    { background: rgba(52,195,143,.15); color: var(--get); }
+.method-post   { background: rgba(108,142,251,.15); color: var(--post); }
+.method-patch  { background: rgba(240,168,65,.15); color: var(--patch); }
+.method-delete { background: rgba(241,103,103,.15); color: var(--delete); }
+
+.route {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.endpoint-desc {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  margin-left: 0;
+}
+
+/* ─── Code blocks ──────────────────────────────────────── */
+.code-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+  margin-top: 12px;
+}
+
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.65;
+  margin-bottom: 12px;
+}
+
+pre::-webkit-scrollbar { height: 4px; }
+pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 13px;
+}
+
+/* inline code */
+p code, li code, td code {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12.5px;
+  color: #a5b4fc;
+}
+
+/* ─── JSON color tokens ─────────────────────────────────── */
+.k { color: #7dd3fc; }   /* key */
+.s { color: #86efac; }   /* string value */
+.n { color: #fca5a5; }   /* number */
+.b { color: #f0a841; }   /* bool/null */
+.c { color: var(--muted); font-style: italic; } /* comment */
+
+/* ─── Tables ────────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  margin-bottom: 20px;
+}
+
+th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(42,45,58,0.6);
+  vertical-align: top;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+td:first-child {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: #a5b4fc;
+}
+
+/* ─── Divider ───────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+
+/* ─── Callout ───────────────────────────────────────────── */
+.callout {
+  background: var(--surface2);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.callout strong { color: var(--text); }
+
+/* ─── Severity badges ───────────────────────────────────── */
+.sev-warn     { background: rgba(240,168,65,.15); color: var(--patch); border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; }
+.sev-critical { background: rgba(241,103,103,.15); color: var(--delete); border-radius: 3px; padding: 1px 6px; font-size: 11px; font-weight: 600; }
+
+/* ─── Responsive ────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .sidebar { display: none; }
+  .main { padding: 32px 20px 80px; }
 }

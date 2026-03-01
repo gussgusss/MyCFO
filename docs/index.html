@@ -9,16 +9,876 @@
 <body>
 
 <div class="layout">
+
+  <!-- ─── Sidebar ─────────────────────────────────────── -->
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="name">MyCFO</div>
       <div class="tag">API Reference · v1</div>
     </div>
+
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a href="#overview" class="nav-link">Introduction</a>
+        <a href="#auth-header" class="nav-link">Authentication</a>
+        <a href="#errors" class="nav-link">Errors</a>
+        <a href="#pagination" class="nav-link">Pagination</a>
+        <a href="#idempotency" class="nav-link">Idempotency</a>
+        <a href="#metrics-defs" class="nav-link">Metric Definitions</a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Auth</div>
+        <a href="#register" class="nav-link"><span class="badge badge-post">POST</span> Register</a>
+        <a href="#login" class="nav-link"><span class="badge badge-post">POST</span> Login</a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Workspaces</div>
+        <a href="#ws-create" class="nav-link"><span class="badge badge-post">POST</span> Create</a>
+        <a href="#ws-list" class="nav-link"><span class="badge badge-get">GET</span> List</a>
+        <a href="#ws-get" class="nav-link"><span class="badge badge-get">GET</span> Get</a>
+        <a href="#ws-update" class="nav-link"><span class="badge badge-patch">PATCH</span> Update</a>
+        <a href="#ws-delete" class="nav-link"><span class="badge badge-delete">DEL</span> Delete</a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Ingest</div>
+        <a href="#ingest-expenses" class="nav-link"><span class="badge badge-post">POST</span> Expenses</a>
+        <a href="#ingest-revenue" class="nav-link"><span class="badge badge-post">POST</span> Revenue</a>
+        <a href="#ingest-stripe" class="nav-link"><span class="badge badge-post">POST</span> Stripe</a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">CFO Outputs</div>
+        <a href="#metrics" class="nav-link"><span class="badge badge-get">GET</span> Metrics</a>
+        <a href="#forecasts-create" class="nav-link"><span class="badge badge-post">POST</span> Create Forecast</a>
+        <a href="#forecasts-list" class="nav-link"><span class="badge badge-get">GET</span> List Forecasts</a>
+        <a href="#forecasts-get" class="nav-link"><span class="badge badge-get">GET</span> Get Forecast</a>
+        <a href="#scenarios-create" class="nav-link"><span class="badge badge-post">POST</span> Create Scenario</a>
+        <a href="#scenarios-list" class="nav-link"><span class="badge badge-get">GET</span> List Scenarios</a>
+        <a href="#scenarios-get" class="nav-link"><span class="badge badge-get">GET</span> Get Scenario</a>
+        <a href="#alerts" class="nav-link"><span class="badge badge-get">GET</span> Alerts</a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">AI</div>
+        <a href="#ai-suggestions" class="nav-link"><span class="badge badge-post">POST</span> AI Suggestions</a>
+      </div>
+    </nav>
   </aside>
 
+  <!-- ─── Main ─────────────────────────────────────────── -->
   <main class="main">
-    <h1>MyCFO API</h1>
-    <p class="subtitle">CFO-grade metrics, forecasts, scenarios, and alerts.</p>
+
+    <!-- Overview -->
+    <div class="page-header" id="overview">
+      <h1>MyCFO API</h1>
+      <p class="subtitle">
+        CFO-grade metrics, forecasts, scenarios, and alerts — scoped to your organization.
+        All amounts are in cents. All timestamps are ISO 8601 UTC.
+      </p>
+    </div>
+
+    <div class="section">
+      <div class="section-title" id="auth-header">Authentication</div>
+      <p class="section-desc">
+        Every request (except <code>/v1/auth/register</code> and <code>/v1/auth/login</code>)
+        requires a bearer token issued at registration or login.
+      </p>
+      <pre><code>Authorization: Bearer &lt;access_token&gt;</code></pre>
+      <p class="section-desc" style="margin-top:10px;">
+        Tokens are short-lived JWTs. Their TTL is set by <code>JWT_ACCESS_TTL_SECONDS</code>
+        in your environment. All data is scoped to the organization that owns the token.
+      </p>
+    </div>
+
+    <!-- Errors -->
+    <div class="section">
+      <div class="section-title" id="errors">Errors</div>
+      <p class="section-desc">Every error response follows the same envelope.</p>
+      <pre><code>{
+  <span class="k">"error"</span>: {
+    <span class="k">"type"</span>: <span class="s">"invalid_request"</span>,
+    <span class="k">"code"</span>: <span class="s">"missing_field"</span>,
+    <span class="k">"message"</span>: <span class="s">"name is required."</span>,
+    <span class="k">"param"</span>: <span class="s">"name"</span>,
+    <span class="k">"request_id"</span>: <span class="s">"req_01j..."</span>
+  }
+}</code></pre>
+
+      <table>
+        <thead><tr><th>Status</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td>200</td><td>Successful read</td></tr>
+          <tr><td>201</td><td>Resource created</td></tr>
+          <tr><td>202</td><td>Ingest accepted and completed</td></tr>
+          <tr><td>204</td><td>Successful delete (no body)</td></tr>
+          <tr><td>400</td><td>Malformed JSON</td></tr>
+          <tr><td>401</td><td>Missing or invalid bearer token</td></tr>
+          <tr><td>404</td><td>Resource not found (or not owned by your org)</td></tr>
+          <tr><td>409</td><td>Idempotency key reuse with different body</td></tr>
+          <tr><td>422</td><td>Validation error (missing required field, bad subtype, etc.)</td></tr>
+          <tr><td>502</td><td>Upstream dependency (e.g., Stripe) unavailable</td></tr>
+          <tr><td>500</td><td>Unexpected server error</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="section">
+      <div class="section-title" id="pagination">Pagination</div>
+      <p class="section-desc">All list endpoints use cursor-based pagination.</p>
+      <table>
+        <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>limit</td><td>20</td><td>Max results to return (max 100)</td></tr>
+          <tr><td>starting_after</td><td>—</td><td>ID of the last item from the previous page</td></tr>
+        </tbody>
+      </table>
+      <p class="section-desc">Response shape for all lists:</p>
+      <pre><code>{
+  <span class="k">"data"</span>: [ <span class="c">/* array of objects */</span> ],
+  <span class="k">"has_more"</span>: <span class="b">true</span>
+}</code></pre>
+    </div>
+
+    <!-- Idempotency -->
+    <div class="section">
+      <div class="section-title" id="idempotency">Idempotency</div>
+      <p class="section-desc">
+        All state-mutating endpoints (POST, PATCH) support an idempotency key.
+        Send the same key with the same body and you get back the original response.
+        Sending the same key with a different body returns <code>409 conflict</code>.
+      </p>
+      <pre><code>Idempotency-Key: my-unique-request-id-123</code></pre>
+    </div>
+
+    <!-- Metric Definitions -->
+    <div class="section">
+      <div class="section-title" id="metrics-defs">Metric Definitions</div>
+      <p class="section-desc">All metrics are computed over a rolling 30-day window ending on <code>as_of</code>.</p>
+      <table>
+        <thead><tr><th>Field</th><th>Definition</th></tr></thead>
+        <tbody>
+          <tr><td>gross_revenue_cents_30d</td><td>Sum of all revenue transactions (excluding refunds) in window</td></tr>
+          <tr><td>refunds_cents_30d</td><td>Sum of refund transactions (negative value)</td></tr>
+          <tr><td>net_revenue_cents_30d</td><td><code>gross_revenue + refunds</code></td></tr>
+          <tr><td>mrr_cents</td><td>Recurring revenue only — manual <code>recurring</code> events + Stripe <code>subscription_invoice</code> events</td></tr>
+          <tr><td>arr_cents</td><td><code>mrr_cents × 12</code></td></tr>
+          <tr><td>burn_cents_30d</td><td><code>total_expenses - net_revenue</code></td></tr>
+          <tr><td>recurring_burn_cents_30d</td><td><code>recurring_expenses - net_revenue</code>. Used for runway.</td></tr>
+          <tr><td>one_time_expenses_cents_30d</td><td>Sum of <code>one_time_expense</code> transactions</td></tr>
+          <tr><td>runway_months</td><td><code>cash_on_hand_cents / recurring_burn_cents_30d</code> when burn is positive; otherwise <code>null</code></td></tr>
+          <tr><td>cash_on_hand_cents</td><td>Set on the workspace via PATCH. Not derived from transactions.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- ─── AUTH ─────────────────────────────────────────── -->
+    <div class="section">
+      <div class="section-title">Auth</div>
+
+      <!-- Register -->
+      <div class="endpoint" id="register">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="route">/v1/auth/register</span>
+        </div>
+        <p class="endpoint-desc">Creates a new organization and returns an access token.</p>
+
+        <div class="code-label">Request body</div>
+        <pre><code>{
+  <span class="k">"org_name"</span>: <span class="s">"Acme Inc"</span>,
+  <span class="k">"email"</span>:    <span class="s">"ceo@acme.com"</span>,
+  <span class="k">"password"</span>: <span class="s">"hunter2"</span>
+}</code></pre>
+
+        <div class="code-label">Response — 201</div>
+        <pre><code>{
+  <span class="k">"org"</span>: {
+    <span class="k">"id"</span>:         <span class="s">"org_01j..."</span>,
+    <span class="k">"name"</span>:       <span class="s">"Acme Inc"</span>,
+    <span class="k">"email"</span>:      <span class="s">"ceo@acme.com"</span>,
+    <span class="k">"created_at"</span>: <span class="s">"2026-03-01T00:00:00+00:00"</span>
+  },
+  <span class="k">"access_token"</span>: <span class="s">"eyJ..."</span>
+}</code></pre>
+      </div>
+
+      <!-- Login -->
+      <div class="endpoint" id="login">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="route">/v1/auth/login</span>
+        </div>
+        <p class="endpoint-desc">Returns an access token for an existing organization.</p>
+
+        <div class="code-label">Request body</div>
+        <pre><code>{
+  <span class="k">"email"</span>:    <span class="s">"ceo@acme.com"</span>,
+  <span class="k">"password"</span>: <span class="s">"hunter2"</span>
+}</code></pre>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code>{
+  <span class="k">"org"</span>: {
+    <span class="k">"id"</span>:         <span class="s">"org_01j..."</span>,
+    <span class="k">"name"</span>:       <span class="s">"Acme Inc"</span>,
+    <span class="k">"email"</span>:      <span class="s">"ceo@acme.com"</span>,
+    <span class="k">"created_at"</span>: <span class="s">"2026-03-01T00:00:00+00:00"</span>
+  },
+  <span class="k">"access_token"</span>: <span class="s">"eyJ..."</span>
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- ─── WORKSPACES ─────────────────────────────────── -->
+    <div class="section">
+      <div class="section-title">Workspaces</div>
+      <p class="section-desc">
+        A workspace represents one business or product. All transactions, metrics, forecasts,
+        scenarios, and alerts are scoped to a workspace.
+        <code>cash_on_hand_cents</code> drives runway calculations.
+      </p>
+
+      <!-- Create workspace -->
+      <div class="endpoint" id="ws-create">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="route">/v1/workspaces</span>
+        </div>
+        <p class="endpoint-desc">Creates a new workspace. Supports idempotency.</p>
+
+        <div class="code-label">Request body</div>
+        <pre><code>{
+  <span class="k">"name"</span>:               <span class="s">"Acme Corp"</span>,          <span class="c">// required</span>
+  <span class="k">"cash_on_hand_cents"</span>: <span class="n">5000000</span>              <span class="c">// optional, in cents ($50,000)</span>
+}</code></pre>
+
+        <div class="code-label">Response — 201</div>
+        <pre><code>{
+  <span class="k">"id"</span>:                 <span class="s">"ws_01j..."</span>,
+  <span class="k">"org_id"</span>:             <span class="s">"org_01j..."</span>,
+  <span class="k">"name"</span>:               <span class="s">"Acme Corp"</span>,
+  <span class="k">"cash_on_hand_cents"</span>: <span class="n">5000000</span>,
+  <span class="k">"created_at"</span>:         <span class="s">"2026-03-01T00:00:00+00:00"</span>
+}</code></pre>
+      </div>
+
+      <!-- List workspaces -->
+      <div class="endpoint" id="ws-list">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="route">/v1/workspaces</span>
+        </div>
+        <p class="endpoint-desc">Lists all workspaces for your organization. Paginated.</p>
+
+        <div class="code-label">Query parameters</div>
+        <pre><code>limit=20&amp;starting_after=ws_01j...</code></pre>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code>{
+  <span class="k">"data"</span>: [ <span class="c">/* workspace objects */</span> ],
+  <span class="k">"has_more"</span>: <span class="b">false</span>
+}</code></pre>
+      </div>
+
+      <!-- Get workspace -->
+      <div class="endpoint" id="ws-get">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="route">/v1/workspaces/{workspace_id}</span>
+        </div>
+        <p class="endpoint-desc">Returns a single workspace.</p>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code>{
+  <span class="k">"id"</span>:                 <span class="s">"ws_01j..."</span>,
+  <span class="k">"org_id"</span>:             <span class="s">"org_01j..."</span>,
+  <span class="k">"name"</span>:               <span class="s">"Acme Corp"</span>,
+  <span class="k">"cash_on_hand_cents"</span>: <span class="n">5000000</span>,
+  <span class="k">"created_at"</span>:         <span class="s">"2026-03-01T00:00:00+00:00"</span>
+}</code></pre>
+      </div>
+
+      <!-- Update workspace -->
+      <div class="endpoint" id="ws-update">
+        <div class="endpoint-header">
+          <span class="method method-patch">PATCH</span>
+          <span class="route">/v1/workspaces/{workspace_id}</span>
+        </div>
+        <p class="endpoint-desc">
+          Updates workspace name and/or cash on hand. Only fields included in the request body are changed.
+          Supports idempotency.
+        </p>
+
+        <div class="code-label">Request body</div>
+        <pre><code>{
+  <span class="k">"name"</span>:               <span class="s">"Acme Corp"</span>,    <span class="c">// optional</span>
+  <span class="k">"cash_on_hand_cents"</span>: <span class="n">7500000</span>         <span class="c">// optional; pass null to clear</span>
+}</code></pre>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code><span class="c">// Updated workspace object</span></code></pre>
+      </div>
+
+      <!-- Delete workspace -->
+      <div class="endpoint" id="ws-delete">
+        <div class="endpoint-header">
+          <span class="method method-delete">DELETE</span>
+          <span class="route">/v1/workspaces/{workspace_id}</span>
+        </div>
+        <p class="endpoint-desc">
+          Permanently deletes the workspace and all associated transactions, forecasts, scenarios, and alerts.
+          Returns <code>204 No Content</code>.
+        </p>
+      </div>
+    </div>
+
+    <!-- ─── INGEST ─────────────────────────────────────── -->
+    <div class="section">
+      <div class="section-title">Ingest</div>
+      <p class="section-desc">
+        Push expense or revenue events into a workspace. All ingest endpoints are idempotent
+        by default (use <code>external_id</code> on each line item to deduplicate across calls).
+        All amounts are in <strong>cents</strong> and must be positive integers for expenses
+        and revenue; refunds are stored internally as negative.
+      </p>
+
+      <!-- Ingest expenses -->
+      <div class="endpoint" id="ingest-expenses">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="route">/v1/workspaces/{workspace_id}/ingest/expenses</span>
+        </div>
+        <p class="endpoint-desc">
+          Ingests one or more expense events. The <code>subtype</code> field determines how expenses
+          affect runway: <code>recurring_expense</code> items factor into
+          <code>recurring_burn_cents_30d</code> and runway; <code>one_time_expense</code> items factor
+          into <code>burn_cents_30d</code> only.
+        </p>
+
+        <div class="code-label">Request body</div>
+        <pre><code>{
+  <span class="k">"expenses"</span>: [
+    {
+      <span class="k">"subtype"</span>:      <span class="s">"recurring_expense"</span>,  <span class="c">// "recurring_expense" | "one_time_expense"</span>
+      <span class="k">"amount_cents"</span>: <span class="n">120000</span>,
+      <span class="k">"currency"</span>:     <span class="s">"USD"</span>,                <span class="c">// default "USD"</span>
+      <span class="k">"occurred_at"</span>:  <span class="s">"2026-02-01"</span>,
+      <span class="k">"vendor"</span>:       <span class="s">"AWS"</span>,                <span class="c">// optional</span>
+      <span class="k">"external_id"</span>:  <span class="s">"aws-feb-2026"</span>        <span class="c">// optional, used for dedup</span>
+    }
+  ]
+}</code></pre>
+
+        <div class="code-label">Response — 202</div>
+        <pre><code>{
+  <span class="k">"ingest_id"</span>:  <span class="s">"ing_01j..."</span>,
+  <span class="k">"status"</span>:     <span class="s">"completed"</span>,
+  <span class="k">"inserted"</span>:   <span class="n">1</span>,
+  <span class="k">"duplicates"</span>: <span class="n">0</span>
+}</code></pre>
+      </div>
+
+      <!-- Ingest revenue -->
+      <div class="endpoint" id="ingest-revenue">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="route">/v1/workspaces/{workspace_id}/ingest/revenue</span>
+        </div>
+        <p class="endpoint-desc">
+          Ingests one or more manual revenue events. Use <code>subtype: "recurring"</code> for
+          subscription or retainer revenue — it will contribute to <code>mrr_cents</code>.
+          Use <code>subtype: "one_time"</code> for non-recurring income.
+        </p>
+
+        <div class="code-label">Request body</div>
+        <pre><code>{
+  <span class="k">"revenue"</span>: [
+    {
+      <span class="k">"subtype"</span>:      <span class="s">"recurring"</span>,     <span class="c">// "recurring" | "one_time"</span>
+      <span class="k">"amount_cents"</span>: <span class="n">250000</span>,
+      <span class="k">"currency"</span>:     <span class="s">"USD"</span>,
+      <span class="k">"occurred_at"</span>:  <span class="s">"2026-02-01"</span>,
+      <span class="k">"description"</span>:  <span class="s">"Feb subscription"</span>,  <span class="c">// optional</span>
+      <span class="k">"external_id"</span>:  <span class="s">"sub-feb-2026"</span>        <span class="c">// optional, used for dedup</span>
+    }
+  ]
+}</code></pre>
+
+        <div class="code-label">Response — 202</div>
+        <pre><code>{
+  <span class="k">"ingest_id"</span>:  <span class="s">"ing_01j..."</span>,
+  <span class="k">"status"</span>:     <span class="s">"completed"</span>,
+  <span class="k">"inserted"</span>:   <span class="n">1</span>,
+  <span class="k">"duplicates"</span>: <span class="n">0</span>
+}</code></pre>
+      </div>
+
+      <!-- Ingest Stripe -->
+      <div class="endpoint" id="ingest-stripe">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="route">/v1/workspaces/{workspace_id}/ingest/stripe</span>
+        </div>
+        <p class="endpoint-desc">
+          Pulls all paid invoices, standalone charges, succeeded refunds, and subscription
+          metadata directly from the Stripe API using your secret key. Pagination is handled
+          automatically. Re-running the call is safe — previously ingested objects are skipped.
+        </p>
+
+        <div class="callout">
+          <strong>Note:</strong> Invoice-linked charges are intentionally skipped to avoid
+          double-counting revenue already captured by the invoice.
+        </div>
+
+        <div class="code-label">Request body</div>
+        <pre><code>{
+  <span class="k">"stripe_api_key"</span>: <span class="s">"sk_live_..."</span>
+}</code></pre>
+
+        <div class="code-label">Response — 202</div>
+        <pre><code>{
+  <span class="k">"ingest_id"</span>:  <span class="s">"ing_01j..."</span>,
+  <span class="k">"status"</span>:     <span class="s">"completed"</span>,
+  <span class="k">"inserted"</span>:   <span class="n">147</span>,
+  <span class="k">"duplicates"</span>: <span class="n">12</span>
+}</code></pre>
+
+        <table>
+          <thead><tr><th>Error code</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>invalid_stripe_api_key</td><td>422 — Stripe rejected the key as invalid</td></tr>
+            <tr><td>stripe_unavailable</td><td>502 — Stripe API is unreachable</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── METRICS ────────────────────────────────────── -->
+    <div class="section">
+      <div class="section-title">Metrics</div>
+
+      <div class="endpoint" id="metrics">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="route">/v1/workspaces/{workspace_id}/metrics</span>
+        </div>
+        <p class="endpoint-desc">
+          Returns computed CFO metrics for a rolling 30-day window ending on <code>as_of</code>
+          (defaults to today). All calculations are derived deterministically from ingested transactions.
+        </p>
+
+        <div class="code-label">Query parameters</div>
+        <pre><code>as_of=2026-02-28   <span class="c">// YYYY-MM-DD, defaults to today</span></code></pre>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code>{
+  <span class="k">"as_of"</span>:                       <span class="s">"2026-02-28"</span>,
+  <span class="k">"currency"</span>:                    <span class="s">"USD"</span>,
+  <span class="k">"gross_revenue_cents_30d"</span>:     <span class="n">2400000</span>,
+  <span class="k">"refunds_cents_30d"</span>:           <span class="n">-80000</span>,
+  <span class="k">"net_revenue_cents_30d"</span>:       <span class="n">2320000</span>,
+  <span class="k">"mrr_cents"</span>:                   <span class="n">2150000</span>,
+  <span class="k">"arr_cents"</span>:                   <span class="n">25800000</span>,
+  <span class="k">"burn_cents_30d"</span>:              <span class="n">480000</span>,
+  <span class="k">"recurring_burn_cents_30d"</span>:    <span class="n">350000</span>,
+  <span class="k">"one_time_expenses_cents_30d"</span>: <span class="n">130000</span>,
+  <span class="k">"cash_on_hand_cents"</span>:          <span class="n">5000000</span>,
+  <span class="k">"runway_months"</span>:               <span class="n">14.29</span>,
+  <span class="k">"warnings"</span>: []
+}</code></pre>
+
+        <p class="section-desc" style="margin-top:8px;">
+          <code>warnings</code> may contain <code>{ "code": "missing_cash", "message": "..." }</code>
+          when <code>cash_on_hand_cents</code> is not set on the workspace (runway will be <code>null</code>).
+        </p>
+      </div>
+    </div>
+
+    <!-- ─── FORECASTS ─────────────────────────────────── -->
+    <div class="section">
+      <div class="section-title">Forecasts</div>
+      <p class="section-desc">
+        A forecast projects MRR, cash, and runway month-by-month from <code>as_of</code>
+        for <code>horizon_months</code> months. Multiple variants (base/best/worst) can be
+        computed in a single call. <code>starting_cash_cents</code> is automatically
+        read from the workspace — set it with <code>PATCH /v1/workspaces/{id}</code> first.
+      </p>
+
+      <!-- Create forecast -->
+      <div class="endpoint" id="forecasts-create">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="route">/v1/workspaces/{workspace_id}/forecasts</span>
+        </div>
+        <p class="endpoint-desc">Creates and saves a new forecast. Supports idempotency.</p>
+
+        <div class="code-label">Request body</div>
+        <pre><code>{
+  <span class="k">"name"</span>:           <span class="s">"Q2 2026 Base Plan"</span>,    <span class="c">// optional label</span>
+  <span class="k">"as_of"</span>:          <span class="s">"2026-02-28"</span>,           <span class="c">// defaults to today</span>
+  <span class="k">"horizon_months"</span>: <span class="n">12</span>,                     <span class="c">// required</span>
+  <span class="k">"assumptions"</span>: {
+    <span class="k">"mrr_growth_pct"</span>:       <span class="n">6</span>,              <span class="c">// monthly MRR growth %</span>
+    <span class="k">"monthly_logo_churn_pct"</span>: <span class="n">2</span>,            <span class="c">// monthly logo churn %</span>
+    <span class="k">"gross_margin_pct"</span>:     <span class="n">85</span>             <span class="c">// gross margin %</span>
+  },
+  <span class="k">"variants"</span>: {
+    <span class="k">"base"</span>:  {},
+    <span class="k">"best"</span>:  { <span class="k">"mrr_growth_pct"</span>: <span class="n">9</span>,  <span class="k">"monthly_logo_churn_pct"</span>: <span class="n">1</span> },
+    <span class="k">"worst"</span>: { <span class="k">"mrr_growth_pct"</span>: <span class="n">2</span>,  <span class="k">"monthly_logo_churn_pct"</span>: <span class="n">4</span> }
+  }
+}</code></pre>
+
+        <div class="code-label">Response — 201</div>
+        <pre><code>{
+  <span class="k">"id"</span>:              <span class="s">"fc_01j..."</span>,
+  <span class="k">"workspace_id"</span>:    <span class="s">"ws_01j..."</span>,
+  <span class="k">"org_id"</span>:          <span class="s">"org_01j..."</span>,
+  <span class="k">"name"</span>:            <span class="s">"Q2 2026 Base Plan"</span>,
+  <span class="k">"as_of"</span>:           <span class="s">"2026-02-28"</span>,
+  <span class="k">"horizon_months"</span>:  <span class="n">12</span>,
+  <span class="k">"assumptions"</span>:     { <span class="c">/* merged assumptions */</span> },
+  <span class="k">"series"</span>: {
+    <span class="k">"months"</span>: [ <span class="s">"2026-03"</span>, <span class="s">"2026-04"</span>, <span class="c">/* ... */</span> ],
+    <span class="k">"base"</span>: {
+      <span class="k">"mrr_cents"</span>:      [ <span class="n">2279000</span>, <span class="n">2415740</span>, <span class="c">/* ... */</span> ],
+      <span class="k">"cash_cents"</span>:     [ <span class="n">4700000</span>, <span class="n">4400000</span>, <span class="c">/* ... */</span> ],
+      <span class="k">"runway_months"</span>:  [ <span class="n">13.43</span>,   <span class="n">12.57</span>,   <span class="c">/* ... */</span> ]
+    },
+    <span class="k">"best"</span>:  { <span class="c">/* same shape */</span> },
+    <span class="k">"worst"</span>: { <span class="c">/* same shape */</span> }
+  },
+  <span class="k">"created_at"</span>: <span class="s">"2026-03-01T00:00:00+00:00"</span>
+}</code></pre>
+      </div>
+
+      <!-- List forecasts -->
+      <div class="endpoint" id="forecasts-list">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="route">/v1/workspaces/{workspace_id}/forecasts</span>
+        </div>
+        <p class="endpoint-desc">
+          Returns a lightweight list of forecasts (no series or assumptions). Paginated.
+          Use GET by ID to retrieve full data.
+        </p>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code>{
+  <span class="k">"data"</span>: [
+    {
+      <span class="k">"id"</span>:             <span class="s">"fc_01j..."</span>,
+      <span class="k">"name"</span>:           <span class="s">"Q2 2026 Base Plan"</span>,
+      <span class="k">"as_of"</span>:          <span class="s">"2026-02-28"</span>,
+      <span class="k">"horizon_months"</span>: <span class="n">12</span>,
+      <span class="k">"created_at"</span>:     <span class="s">"2026-03-01T00:00:00+00:00"</span>
+    }
+  ],
+  <span class="k">"has_more"</span>: <span class="b">false</span>
+}</code></pre>
+      </div>
+
+      <!-- Get forecast -->
+      <div class="endpoint" id="forecasts-get">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="route">/v1/workspaces/{workspace_id}/forecasts/{forecast_id}</span>
+        </div>
+        <p class="endpoint-desc">Returns the full forecast including assumptions and all variant series.</p>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code><span class="c">// Full forecast object (same shape as the create 201 response)</span></code></pre>
+      </div>
+    </div>
+
+    <!-- ─── SCENARIOS ──────────────────────────────────── -->
+    <div class="section">
+      <div class="section-title">Scenarios</div>
+      <p class="section-desc">
+        A scenario re-runs a saved forecast with a modified assumption (delta) and stores the
+        resulting series alongside an impact summary. Use scenarios to answer what-if questions
+        without overwriting your baseline.
+      </p>
+
+      <!-- Create scenario -->
+      <div class="endpoint" id="scenarios-create">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="route">/v1/workspaces/{workspace_id}/scenarios</span>
+        </div>
+        <p class="endpoint-desc">Creates a what-if scenario against a baseline forecast. Supports idempotency.</p>
+
+        <div class="code-label">Request body</div>
+        <pre><code>{
+  <span class="k">"name"</span>:                 <span class="s">"10% price increase"</span>,  <span class="c">// optional</span>
+  <span class="k">"baseline_forecast_id"</span>: <span class="s">"fc_01j..."</span>,           <span class="c">// required</span>
+  <span class="k">"delta"</span>: {
+    <span class="k">"type"</span>: <span class="s">"price_change"</span>,
+    <span class="k">"pct"</span>:  <span class="n">0.10</span>
+  }
+}
+
+<span class="c">// Other delta examples:</span>
+{ <span class="k">"type"</span>: <span class="s">"churn_change"</span>, <span class="k">"delta_pp"</span>: <span class="n">1.5</span> }          <span class="c">// +1.5pp churn</span>
+{ <span class="k">"type"</span>: <span class="s">"hire"</span>, <span class="k">"monthly_cost_cents"</span>: <span class="n">1200000</span>,
+  <span class="k">"start_month"</span>: <span class="s">"2026-04"</span> }                         <span class="c">// new hire cost</span></code></pre>
+
+        <div class="code-label">Response — 201</div>
+        <pre><code>{
+  <span class="k">"id"</span>:                   <span class="s">"sc_01j..."</span>,
+  <span class="k">"workspace_id"</span>:         <span class="s">"ws_01j..."</span>,
+  <span class="k">"org_id"</span>:               <span class="s">"org_01j..."</span>,
+  <span class="k">"name"</span>:                 <span class="s">"10% price increase"</span>,
+  <span class="k">"baseline_forecast_id"</span>: <span class="s">"fc_01j..."</span>,
+  <span class="k">"delta"</span>:   { <span class="k">"type"</span>: <span class="s">"price_change"</span>, <span class="k">"pct"</span>: <span class="n">0.10</span> },
+  <span class="k">"impact"</span>: {
+    <span class="k">"final_cash_delta_cents"</span>: <span class="n">980000</span>,
+    <span class="k">"final_mrr_cents"</span>:        <span class="n">3150000</span>
+  },
+  <span class="k">"series"</span>: {
+    <span class="k">"months"</span>: [ <span class="c">/* ... */</span> ],
+    <span class="k">"scenario"</span>: {
+      <span class="k">"mrr_cents"</span>:     [ <span class="c">/* ... */</span> ],
+      <span class="k">"cash_cents"</span>:    [ <span class="c">/* ... */</span> ],
+      <span class="k">"runway_months"</span>: [ <span class="c">/* ... */</span> ]
+    }
+  },
+  <span class="k">"created_at"</span>: <span class="s">"2026-03-01T00:00:00+00:00"</span>
+}</code></pre>
+      </div>
+
+      <!-- List scenarios -->
+      <div class="endpoint" id="scenarios-list">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="route">/v1/workspaces/{workspace_id}/scenarios</span>
+        </div>
+        <p class="endpoint-desc">
+          Returns a lightweight list of scenarios (includes delta and impact, excludes series).
+          Paginated. Use GET by ID to retrieve full series data.
+        </p>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code>{
+  <span class="k">"data"</span>: [
+    {
+      <span class="k">"id"</span>:                   <span class="s">"sc_01j..."</span>,
+      <span class="k">"name"</span>:                 <span class="s">"10% price increase"</span>,
+      <span class="k">"baseline_forecast_id"</span>: <span class="s">"fc_01j..."</span>,
+      <span class="k">"delta"</span>:  { <span class="k">"type"</span>: <span class="s">"price_change"</span>, <span class="k">"pct"</span>: <span class="n">0.10</span> },
+      <span class="k">"impact"</span>: {
+        <span class="k">"final_cash_delta_cents"</span>: <span class="n">980000</span>,
+        <span class="k">"final_mrr_cents"</span>:        <span class="n">3150000</span>
+      },
+      <span class="k">"created_at"</span>: <span class="s">"2026-03-01T00:00:00+00:00"</span>
+    }
+  ],
+  <span class="k">"has_more"</span>: <span class="b">false</span>
+}</code></pre>
+      </div>
+
+      <!-- Get scenario -->
+      <div class="endpoint" id="scenarios-get">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="route">/v1/workspaces/{workspace_id}/scenarios/{scenario_id}</span>
+        </div>
+        <p class="endpoint-desc">Returns the full scenario including the projected series.</p>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code><span class="c">// Full scenario object (same shape as the create 201 response)</span></code></pre>
+      </div>
+    </div>
+
+    <!-- ─── ALERTS ─────────────────────────────────────── -->
+    <div class="section">
+      <div class="section-title">Alerts</div>
+
+      <div class="endpoint" id="alerts">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="route">/v1/workspaces/{workspace_id}/alerts</span>
+        </div>
+        <p class="endpoint-desc">
+          Evaluates alert rules against current metrics and returns any active alerts.
+          Results are computed fresh on each call and persisted, replacing any previously stored alerts.
+        </p>
+
+        <div class="code-label">Query parameters</div>
+        <pre><code>as_of=2026-02-28   <span class="c">// YYYY-MM-DD, defaults to today</span></code></pre>
+
+        <div class="code-label">Response — 200</div>
+        <pre><code>{
+  <span class="k">"data"</span>: [
+    {
+      <span class="k">"id"</span>:           <span class="s">"al_01j..."</span>,
+      <span class="k">"type"</span>:         <span class="s">"runway_low"</span>,
+      <span class="k">"severity"</span>:     <span class="s">"critical"</span>,
+      <span class="k">"message"</span>:      <span class="s">"Runway is below 6 months (2.5)."</span>,
+      <span class="k">"payload"</span>:      { <span class="k">"runway_months"</span>: <span class="n">2.5</span> },
+      <span class="k">"workspace_id"</span>: <span class="s">"ws_01j..."</span>,
+      <span class="k">"org_id"</span>:       <span class="s">"org_01j..."</span>,
+      <span class="k">"created_at"</span>:   <span class="s">"2026-03-01T00:00:00+00:00"</span>
+    }
+  ]
+}</code></pre>
+
+        <table>
+          <thead><tr><th>Alert type</th><th>Severity</th><th>Fires when</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>runway_low</td>
+              <td><span class="sev-warn">warn</span> / <span class="sev-critical">critical</span></td>
+              <td>Runway &lt; 6 months (critical if &lt; 3 months)</td>
+            </tr>
+            <tr>
+              <td>mrr_decline</td>
+              <td><span class="sev-warn">warn</span></td>
+              <td>MRR fell &gt; 8% vs prior 30 days — only fires when the workspace has recurring revenue</td>
+            </tr>
+            <tr>
+              <td>revenue_decline</td>
+              <td><span class="sev-warn">warn</span></td>
+              <td>Net revenue fell &gt; 8% vs prior 30 days</td>
+            </tr>
+            <tr>
+              <td>refund_spike</td>
+              <td><span class="sev-warn">warn</span></td>
+              <td>Refund volume is more than 2× the previous 30-day period</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── AI SUGGESTIONS ────────────────────────────── -->
+    <div class="section">
+      <div class="section-title">AI Suggestions</div>
+
+      <div class="endpoint" id="ai-suggestions">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="route">/v1/workspaces/{workspace_id}/ai/suggestions</span>
+        </div>
+        <p class="endpoint-desc">
+          Generates an AI-powered advisory memo grounded entirely in computed metrics and alerts.
+          Requires <code>HUGGINGFACE_API_KEY</code> to be configured. If the AI provider is
+          unavailable, the endpoint returns a fallback response with the raw metrics and alerts
+          so callers can still display data.
+        </p>
+
+        <div class="code-label">Query parameters</div>
+        <pre><code>as_of=2026-02-28   <span class="c">// YYYY-MM-DD, defaults to today</span></code></pre>
+
+        <div class="code-label">Response — 200 (AI available)</div>
+        <pre><code>{
+  <span class="k">"workspace_id"</span>: <span class="s">"ws_01j..."</span>,
+  <span class="k">"as_of"</span>:        <span class="s">"2026-02-28"</span>,
+  <span class="k">"summary"</span>:      <span class="s">"Cash position is stable with 14.3 months runway..."</span>,
+  <span class="k">"suggestions"</span>: [ <span class="s">"Consider increasing the marketing budget..."</span> ],
+  <span class="k">"risks"</span>:       [ <span class="s">"Refund volume rose 2.3x last month."</span> ],
+  <span class="k">"grounding"</span>: {
+    <span class="k">"workspace_name"</span>: <span class="s">"Acme Corp"</span>,
+    <span class="k">"alert_count"</span>:    <span class="n">1</span>,
+    <span class="k">"alerts"</span>:         [ <span class="c">/* alert objects */</span> ],
+    <span class="k">"metrics"</span>:        { <span class="c">/* metrics object */</span> }
+  },
+  <span class="k">"provider"</span>:     <span class="s">"huggingface"</span>,
+  <span class="k">"model"</span>:        <span class="s">"mistralai/Mistral-7B-Instruct-v0.2"</span>,
+  <span class="k">"ai_available"</span>: <span class="b">true</span>
+}</code></pre>
+
+        <div class="code-label">Response — 200 (AI unavailable / fallback)</div>
+        <pre><code>{
+  <span class="k">"workspace_id"</span>: <span class="s">"ws_01j..."</span>,
+  <span class="k">"as_of"</span>:        <span class="s">"2026-02-28"</span>,
+  <span class="k">"summary"</span>:      <span class="s">"AI is currently unavailable. Returning computed metrics and alerts only."</span>,
+  <span class="k">"suggestions"</span>: [],
+  <span class="k">"risks"</span>:       [],
+  <span class="k">"grounding"</span>:   { <span class="c">/* metrics + alerts */</span> },
+  <span class="k">"provider"</span>:     <span class="s">"fallback"</span>,
+  <span class="k">"model"</span>:        <span class="b">null</span>,
+  <span class="k">"ai_available"</span>: <span class="b">false</span>,
+  <span class="k">"ai_error"</span>: {
+    <span class="k">"type"</span>:    <span class="s">"configuration_error"</span>,
+    <span class="k">"code"</span>:    <span class="s">"huggingface_not_configured"</span>,
+    <span class="k">"message"</span>: <span class="s">"HUGGINGFACE_API_KEY is not set."</span>
+  }
+}</code></pre>
+
+        <div class="callout">
+          <strong>Advisory only.</strong> AI output is narrative text grounded on already-computed
+          metrics and alerts. The LLM does not perform any calculations.
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── END-TO-END EXAMPLE ────────────────────────── -->
+    <div class="section">
+      <div class="section-title" id="example">End-to-end example</div>
+      <p class="section-desc">Register, set up a workspace, ingest data, and pull metrics in one shell session.</p>
+
+      <pre><code><span class="c"># 1. Register</span>
+TOKEN=$(curl -s -X POST https://mycfo.vercel.app/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"org_name":"Acme","email":"ceo@acme.com","password":"hunter2"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+<span class="c"># 2. Create workspace</span>
+WS=$(curl -s -X POST https://mycfo.vercel.app/v1/workspaces \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Acme Corp","cash_on_hand_cents":5000000}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+<span class="c"># 3. Ingest expenses</span>
+curl -s -X POST https://mycfo.vercel.app/v1/workspaces/$WS/ingest/expenses \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"expenses":[
+    {"subtype":"recurring_expense","amount_cents":120000,"occurred_at":"2026-02-01","vendor":"AWS"},
+    {"subtype":"one_time_expense","amount_cents":500000,"occurred_at":"2026-02-15","vendor":"Design contractor"}
+  ]}'
+
+<span class="c"># 4. Ingest recurring revenue</span>
+curl -s -X POST https://mycfo.vercel.app/v1/workspaces/$WS/ingest/revenue \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"revenue":[
+    {"subtype":"recurring","amount_cents":250000,"occurred_at":"2026-02-01","description":"Feb subscriptions"}
+  ]}'
+
+<span class="c"># 5. Pull metrics</span>
+curl -s "https://mycfo.vercel.app/v1/workspaces/$WS/metrics?as_of=2026-02-28" \
+  -H "Authorization: Bearer $TOKEN"
+
+<span class="c"># 6. Run a 12-month forecast</span>
+FC=$(curl -s -X POST https://mycfo.vercel.app/v1/workspaces/$WS/forecasts \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Base plan","horizon_months":12,
+       "assumptions":{"mrr_growth_pct":6,"monthly_logo_churn_pct":2,"gross_margin_pct":85},
+       "variants":{"base":{},"best":{"mrr_growth_pct":9},"worst":{"mrr_growth_pct":2}}}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+<span class="c"># 7. What-if: 10% price increase</span>
+curl -s -X POST https://mycfo.vercel.app/v1/workspaces/$WS/scenarios \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\":\"Price +10%\",\"baseline_forecast_id\":\"$FC\",\"delta\":{\"type\":\"price_change\",\"pct\":0.10}}"
+
+<span class="c"># 8. Check alerts</span>
+curl -s "https://mycfo.vercel.app/v1/workspaces/$WS/alerts" \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+    </div>
+
   </main>
 </div>
 
