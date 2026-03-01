@@ -1,8 +1,18 @@
 # MyCFO
 
-API-first CFO copilot for a hackathon MVP: org-scoped auth, workspaces, deterministic ingest, metrics, forecasts, scenarios, and alerts.
+API-first CFO copilot: organization-scoped auth, workspaces, deterministic ingest, metrics, forecasts, scenarios, alerts, and AI-powered recommendations.
 
-## MVP scope
+## Links
+
+- **API Base URL:** https://my-cfo-sigma.vercel.app/
+- **API Docs (GitHub Pages):** https://gussgusss.github.io/MyCFO
+
+## Overview
+
+MyCFO is a backend Web API that helps teams track burn, revenue, runway, and recurring metrics.  
+It supports structured financial ingest, Stripe integration, and alert-driven AI suggestions.
+
+## Core Features
 
 - Flask API deployed through Vercel
 - Neon Postgres in production
