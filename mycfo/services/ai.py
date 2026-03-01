@@ -34,15 +34,18 @@ def build_alert_suggestions(*, workspace_name: str, metrics: dict, alerts: list[
     model = current_app.config["HUGGINGFACE_MODEL"]
     prompt = _build_prompt(workspace_name=workspace_name, metrics=metrics, alerts=alerts)
     body = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 350,
-            "temperature": 0.3,
-            "return_full_text": False,
-        },
+        "model": model,
+        "messages": [
+        {
+            "role": "user",
+            "content": prompt,
+        }
+        ],
+        "max_tokens": 350,
+        "temperature": 0.3,
     }
     req = request.Request(
-        url=f"https://api-inference.huggingface.co/models/{model}",
+        url="https://router.huggingface.co/v1/chat/completions",
         data=json.dumps(body).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -132,13 +135,9 @@ def _normalize_response(*, raw: str, alerts: list[dict], workspace_name: str, mo
 
 
 def _extract_generated_text(parsed: object) -> str | None:
-    if isinstance(parsed, list) and parsed:
-        first = parsed[0]
-        if isinstance(first, dict):
-            return first.get("generated_text")
     if isinstance(parsed, dict):
-        if "generated_text" in parsed:
-            return parsed["generated_text"]
+        if "choices" in parsed and parsed["choices"]:
+            return parsed["choices"][0]["message"]["content"]
         if "error" in parsed:
             raise APIError(
                 status_code=502,
