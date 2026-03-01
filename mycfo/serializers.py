@@ -1,16 +1,6 @@
 from __future__ import annotations
 
-from .models import Alert, Forecast, Scenario, User, Workspace
-
-
-def user_to_dict(user: User) -> dict:
-    return {
-        "id": user.id,
-        "email": user.email,
-        "role": user.role,
-        "org_id": user.org_id,
-        "created_at": user.created_at.isoformat(),
-    }
+from .models import Alert, Forecast, Scenario, Workspace
 
 
 def workspace_to_dict(workspace: Workspace) -> dict:

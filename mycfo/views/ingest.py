@@ -15,7 +15,7 @@ ingest_bp = Blueprint("ingest", __name__)
 
 
 @ingest_bp.post("/workspaces/<workspace_id>/ingest/expenses")
-@require_auth(roles={"owner", "admin"})
+@require_auth()
 def ingest_expenses(workspace_id: str):
     payload = require_json()
     cached_body, cached_status = check_idempotency(payload)
@@ -69,7 +69,7 @@ def ingest_expenses(workspace_id: str):
 
 
 @ingest_bp.post("/workspaces/<workspace_id>/ingest/stripe")
-@require_auth(roles={"owner", "admin"})
+@require_auth()
 def ingest_stripe_export(workspace_id: str):
     payload = require_json()
     cached_body, cached_status = check_idempotency(payload)

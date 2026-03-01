@@ -18,23 +18,11 @@ class Organization(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
-
-    users: Mapped[list["User"]] = relationship(back_populates="organization")
-    workspaces: Mapped[list["Workspace"]] = relationship(back_populates="organization")
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), nullable=False, index=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    role: Mapped[str] = mapped_column(String(32), nullable=False, default="owner")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    organization: Mapped["Organization"] = relationship(back_populates="users")
+    workspaces: Mapped[list["Workspace"]] = relationship(back_populates="organization")
 
 
 class Workspace(Base):

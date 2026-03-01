@@ -18,7 +18,7 @@ forecasts_bp = Blueprint("forecasts", __name__)
 
 
 @forecasts_bp.post("/workspaces/<workspace_id>/forecasts")
-@require_auth(roles={"owner", "admin"})
+@require_auth()
 def create_forecast(workspace_id: str):
     payload = require_json()
     cached_body, cached_status = check_idempotency(payload)

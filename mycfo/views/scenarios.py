@@ -18,7 +18,7 @@ scenarios_bp = Blueprint("scenarios", __name__)
 
 
 @scenarios_bp.post("/workspaces/<workspace_id>/scenarios")
-@require_auth(roles={"owner", "admin"})
+@require_auth()
 def create_scenario(workspace_id: str):
     payload = require_json()
     cached_body, cached_status = check_idempotency(payload)

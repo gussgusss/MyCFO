@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from .db import get_db
 from .errors import APIError
-from .models import User
+from .models import Organization
 
 
 password_hasher = PasswordHasher()
@@ -28,12 +28,10 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-def issue_access_token(*, user: User) -> str:
+def issue_access_token(*, org: Organization) -> str:
     now = datetime.now(timezone.utc)
     payload = {
-        "sub": user.id,
-        "org_id": user.org_id,
-        "role": user.role,
+        "sub": org.id,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(seconds=current_app.config["JWT_ACCESS_TTL_SECONDS"])).timestamp()),
     }
@@ -52,7 +50,7 @@ def decode_token(token: str) -> dict:
         ) from exc
 
 
-def require_auth(*, roles: set[str] | None = None):
+def require_auth():
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -68,23 +66,15 @@ def require_auth(*, roles: set[str] | None = None):
             token = auth_header.removeprefix("Bearer ").strip()
             claims = decode_token(token)
             session = get_db()
-            user = session.scalar(select(User).where(User.id == claims["sub"], User.org_id == claims["org_id"]))
-            if user is None:
+            org = session.scalar(select(Organization).where(Organization.id == claims["sub"]))
+            if org is None:
                 raise APIError(
                     status_code=401,
                     error_type="auth_error",
                     code="invalid_token_subject",
                     message="Token subject is not valid.",
                 )
-            if roles and user.role not in roles:
-                raise APIError(
-                    status_code=403,
-                    error_type="auth_error",
-                    code="forbidden",
-                    message="You do not have permission to perform this action.",
-                )
-            g.current_user = user
-            g.current_org_id = user.org_id
+            g.current_org_id = org.id
             return func(*args, **kwargs)
 
         return wrapper

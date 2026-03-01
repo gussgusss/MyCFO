@@ -13,7 +13,7 @@ workspaces_bp = Blueprint("workspaces", __name__)
 
 
 @workspaces_bp.post("/workspaces")
-@require_auth(roles={"owner", "admin"})
+@require_auth()
 def create_workspace():
     payload = require_json()
     cached_body, cached_status = check_idempotency(payload)
