@@ -82,6 +82,7 @@ class Scenario(Base):
     org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), nullable=False, index=True)
     workspace_id: Mapped[str] = mapped_column(ForeignKey("workspaces.id"), nullable=False, index=True)
     baseline_forecast_id: Mapped[str] = mapped_column(ForeignKey("forecasts.id"), nullable=False)
+    name: Mapped[str | None] = mapped_column(Text, nullable=True)
     delta: Mapped[dict] = mapped_column(JSON, nullable=False)
     impact: Mapped[dict] = mapped_column(JSON, nullable=False)
     series: Mapped[dict] = mapped_column(JSON, nullable=False)

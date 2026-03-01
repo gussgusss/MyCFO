@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from ..db import get_db
 from ..errors import APIError
-from ..models import Forecast, Workspace
+from ..models import Forecast, Scenario, Workspace
 
 
 def get_workspace_or_404(workspace_id: str) -> Workspace:
@@ -40,3 +40,22 @@ def get_forecast_or_404(*, workspace_id: str, forecast_id: str) -> Forecast:
             message="Forecast was not found.",
         )
     return forecast
+
+
+def get_scenario_or_404(*, workspace_id: str, scenario_id: str) -> Scenario:
+    session = get_db()
+    scenario = session.scalar(
+        select(Scenario).where(
+            Scenario.id == scenario_id,
+            Scenario.workspace_id == workspace_id,
+            Scenario.org_id == g.current_org_id,
+        )
+    )
+    if scenario is None:
+        raise APIError(
+            status_code=404,
+            error_type="invalid_request",
+            code="scenario_not_found",
+            message="Scenario was not found.",
+        )
+    return scenario

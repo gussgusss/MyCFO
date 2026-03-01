@@ -30,6 +30,7 @@ def scenario_to_dict(scenario: Scenario) -> dict:
     return {
         "id": scenario.id,
         "workspace_id": scenario.workspace_id,
+        "name": scenario.name,
         "baseline_forecast_id": scenario.baseline_forecast_id,
         "delta": scenario.delta,
         "impact": scenario.impact,

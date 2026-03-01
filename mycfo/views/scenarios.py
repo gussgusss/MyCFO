@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from flask import Blueprint, g, jsonify
+from flask import Blueprint, g, jsonify, request
 from sqlalchemy import select
 
 from ..auth import require_auth
 from ..db import get_db
+from ..errors import APIError
 from ..idempotency import check_idempotency, store_idempotency_response
-from ..models import Scenario, Transaction
+from ..models import Forecast, Scenario, Transaction
 from ..serializers import scenario_to_dict
 from ..services.forecasts import build_forecast
 from ..services.metrics import compute_metrics
 from ..services.scenarios import apply_delta
-from ..utils import new_id, require_field, require_json
-from .common import get_forecast_or_404, get_workspace_or_404
+from ..utils import new_id, read_pagination, require_field, require_json
+from .common import get_forecast_or_404, get_scenario_or_404, get_workspace_or_404
 
 scenarios_bp = Blueprint("scenarios", __name__)
 
@@ -58,6 +59,7 @@ def create_scenario(workspace_id: str):
         id=new_id("sc"),
         org_id=g.current_org_id,
         workspace_id=workspace.id,
+        name=payload.get("name"),
         baseline_forecast_id=baseline.id,
         delta=delta,
         impact=impact,
@@ -69,3 +71,35 @@ def create_scenario(workspace_id: str):
     store_idempotency_response(response_status=201, response_body=response_body)
     session.commit()
     return jsonify(response_body), 201
+
+
+@scenarios_bp.get("/workspaces/<workspace_id>/scenarios")
+@require_auth()
+def list_scenarios(workspace_id: str):
+    get_workspace_or_404(workspace_id)
+    session = get_db()
+    limit, _ = read_pagination(request)
+    scenarios = list(
+        session.scalars(
+            select(Scenario).where(Scenario.workspace_id == workspace_id, Scenario.org_id == g.current_org_id).order_by(Scenario.created_at.desc())
+        )
+    )
+    return jsonify({"data": [_scenario_summary(item) for item in scenarios[:limit]], "has_more": len(scenarios) > limit})
+
+
+@scenarios_bp.get("/workspaces/<workspace_id>/scenarios/<scenario_id>")
+@require_auth()
+def get_scenario(workspace_id: str, scenario_id: str):
+    scenario = get_scenario_or_404(workspace_id=workspace_id, scenario_id=scenario_id)
+    return jsonify(scenario_to_dict(scenario))
+
+
+def _scenario_summary(scenario: Scenario) -> dict:
+    return {
+        "id": scenario.id,
+        "name": scenario.name,
+        "baseline_forecast_id": scenario.baseline_forecast_id,
+        "delta": scenario.delta,
+        "impact": scenario.impact,
+        "created_at": scenario.created_at.isoformat(),
+    }
