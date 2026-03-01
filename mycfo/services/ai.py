@@ -45,7 +45,7 @@ def build_alert_suggestions(*, workspace_name: str, metrics: dict, alerts: list[
         "temperature": 0.3,
     }
     req = request.Request(
-        url="https://router.huggingface.co/v1/chat/completions",
+        url="https://router.huggingface.co/hf-inference/v1/chat/completions",
         data=json.dumps(body).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {api_key}",
