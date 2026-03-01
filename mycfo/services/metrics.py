@@ -50,7 +50,11 @@ def compute_metrics(*, workspace: Workspace, transactions: list[Transaction], as
         for txn in previous_transactions
         if txn.type == "revenue" and txn.subtype in {"subscription_invoice", "recurring_revenue", "recurring"}
     )
+    previous_gross_revenue = sum(
+        txn.amount_cents for txn in previous_transactions if txn.type == "revenue" and txn.subtype != "refund"
+    )
     refunds_prev = sum(txn.amount_cents for txn in previous_transactions if txn.subtype == "refund")
+    previous_net_revenue = previous_gross_revenue + refunds_prev
 
     return {
         "as_of": as_of.isoformat(),
@@ -68,6 +72,7 @@ def compute_metrics(*, workspace: Workspace, transactions: list[Transaction], as
         "warnings": warnings,
         "_comparisons": {
             "previous_mrr_cents_30d": previous_mrr,
+            "previous_net_revenue_cents_30d": previous_net_revenue,
             "previous_refunds_cents_30d": refunds_prev,
         },
     }
