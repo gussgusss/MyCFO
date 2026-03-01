@@ -45,4 +45,4 @@ def list_alerts(workspace_id: str):
         session.add(alert)
         persisted.append(alert)
     session.commit()
-    return jsonify({"data": [alert_to_dict(item) for item in persisted], "has_more": False})
+    return jsonify({"data": [alert_to_dict(item) for item in persisted]})
