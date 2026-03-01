@@ -20,11 +20,12 @@ def create_workspace():
     if cached_body is not None:
         return jsonify(cached_body), cached_status
 
+    cash = payload.get("cash_on_hand_cents")
     workspace = Workspace(
         id=new_id("ws"),
         org_id=g.current_org_id,
         name=str(require_field(payload, "name")).strip(),
-        settings=payload.get("settings", {}),
+        cash_on_hand_cents=int(cash) if cash is not None else None,
     )
     session = get_db()
     session.add(workspace)
@@ -54,4 +55,21 @@ def list_workspaces():
 @require_auth()
 def get_workspace(workspace_id: str):
     workspace = get_workspace_or_404(workspace_id)
+    return jsonify(workspace_to_dict(workspace))
+
+
+@workspaces_bp.patch("/workspaces/<workspace_id>")
+@require_auth()
+def update_workspace(workspace_id: str):
+    payload = require_json()
+    workspace = get_workspace_or_404(workspace_id)
+
+    if "name" in payload:
+        workspace.name = str(payload["name"]).strip()
+    if "cash_on_hand_cents" in payload:
+        cash = payload["cash_on_hand_cents"]
+        workspace.cash_on_hand_cents = int(cash) if cash is not None else None
+
+    session = get_db()
+    session.commit()
     return jsonify(workspace_to_dict(workspace))

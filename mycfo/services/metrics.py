@@ -28,7 +28,7 @@ def compute_metrics(*, workspace: Workspace, transactions: list[Transaction], as
         if txn.type == "revenue" and txn.subtype in {"subscription_invoice", "recurring_revenue"}
     )
     arpa = int(recurring_revenue / max(_distinct_customers(window_transactions), 1))
-    cash_on_hand = workspace.settings.get("cash_on_hand_cents")
+    cash_on_hand = workspace.cash_on_hand_cents
     runway_months = round(cash_on_hand / burn, 2) if cash_on_hand is not None and burn > 0 else None
 
     warnings = []

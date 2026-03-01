@@ -8,7 +8,7 @@ def workspace_to_dict(workspace: Workspace) -> dict:
         "id": workspace.id,
         "org_id": workspace.org_id,
         "name": workspace.name,
-        "settings": workspace.settings,
+        "cash_on_hand_cents": workspace.cash_on_hand_cents,
         "created_at": workspace.created_at.isoformat(),
     }
 

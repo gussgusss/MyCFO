@@ -31,7 +31,7 @@ class Workspace(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     org_id: Mapped[str] = mapped_column(ForeignKey("organizations.id"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(Text, nullable=False)
-    settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    cash_on_hand_cents: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     organization: Mapped["Organization"] = relationship(back_populates="workspaces")

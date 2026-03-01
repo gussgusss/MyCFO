@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS workspaces (
   id TEXT PRIMARY KEY,
   org_id TEXT NOT NULL REFERENCES organizations (id),
   name TEXT NOT NULL,
-  settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+  cash_on_hand_cents BIGINT,
   created_at TIMESTAMPTZ NOT NULL
 );
 
